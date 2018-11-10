@@ -3,13 +3,13 @@
  *
  * @package     EasyAppointments
  * @author      A.Tselegidis <alextselegidis@gmail.com>
- * @copyright   Copyright (c) 2013 - 2016, Alex Tselegidis
+ * @copyright   Copyright (c) 2013 - 2018, Alex Tselegidis
  * @license     http://opensource.org/licenses/GPL-3.0 - GPLv3
  * @link        http://easyappointments.org
  * @since       v1.0.0
  * ---------------------------------------------------------------------------- */
 
-(function() {
+(function () {
 
     'use strict';
 
@@ -18,7 +18,8 @@
      *
      * @class SystemSettings
      */
-    var SystemSettings = function() {};
+    var SystemSettings = function () {
+    };
 
     /**
      * Save the system settings.
@@ -27,7 +28,7 @@
      *
      * @param {Array} settings Contains the system settings data.
      */
-    SystemSettings.prototype.save = function(settings) {
+    SystemSettings.prototype.save = function (settings) {
         var postUrl = GlobalVariables.baseUrl + '/index.php/backend_api/ajax_save_settings';
         var postData = {
             csrfToken: GlobalVariables.csrfToken,
@@ -35,12 +36,12 @@
             type: BackendSettings.SETTINGS_SYSTEM
         };
 
-        $.post(postUrl, postData, function(response) {
+        $.post(postUrl, postData, function (response) {
             if (!GeneralFunctions.handleAjaxExceptions(response)) {
                 return;
             }
 
-            Backend.displayNotification(EALang['settings_saved']);
+            Backend.displayNotification(EALang.settings_saved);
 
             // Update the logo title on the header.
             $('#header-logo span').text($('#company-name').val());
@@ -60,11 +61,11 @@
      *
      * @return {Array} Returns the system settings array.
      */
-    SystemSettings.prototype.get = function() {
+    SystemSettings.prototype.get = function () {
         var settings = [];
 
         // General Settings Tab
-        $('#general').find('input, select').each(function() {
+        $('#general').find('input, select').each(function () {
             settings.push({
                 name: $(this).attr('data-field'),
                 value: $(this).val()
@@ -92,6 +93,37 @@
             value: $('#book-advance-timeout').val()
         });
 
+        // Legal Contents Tab
+        settings.push({
+            name: 'display_cookie_notice',
+            value: $('#display-cookie-notice').prop('checked') ? '1' : '0'
+        });
+
+        settings.push({
+            name: 'cookie_notice_content',
+            value: $('#cookie-notice-content').trumbowyg('html')
+        });
+
+        settings.push({
+            name: 'display_terms_and_conditions',
+            value: $('#display-terms-and-conditions').prop('checked') ? '1' : '0'
+        });
+
+        settings.push({
+            name: 'terms_and_conditions_content',
+            value: $('#terms-and-conditions-content').trumbowyg('html')
+        });
+
+        settings.push({
+            name: 'display_privacy_policy',
+            value: $('#display-privacy-policy').prop('checked') ? '1' : '0'
+        });
+
+        settings.push({
+            name: 'privacy_policy_content',
+            value: $('#privacy-policy-content').trumbowyg('html')
+        });
+
         return settings;
     };
 
@@ -102,32 +134,32 @@
      *
      * @return {Boolean} Returns the validation result.
      */
-    SystemSettings.prototype.validate = function() {
-        $('#general .required').css('border', '');
+    SystemSettings.prototype.validate = function () {
+        $('#general .has-error').removeClass('has-error');
 
         try {
             // Validate required fields.
             var missingRequired = false;
-            $('#general .required').each(function() {
+            $('#general .required').each(function () {
                 if ($(this).val() == '' || $(this).val() == undefined) {
-                    $(this).css('border', '2px solid red');
+                    $(this).closest('.form-group').addClass('has-error');
                     missingRequired = true;
                 }
             });
 
             if (missingRequired) {
-                throw EALang['fields_are_required'];
+                throw EALang.fields_are_required;
             }
 
             // Validate company email address.
             if (!GeneralFunctions.validateEmail($('#company-email').val())) {
-                $('#company-email').css('border', '2px solid red');
-                throw EALang['invalid_email'];
+                $('#company-email').closest('.form-group').addClass('has-error');
+                throw EALang.invalid_email;
             }
 
             return true;
-        } catch(exc) {
-            Backend.displayNotification(exc);
+        } catch (message) {
+            Backend.displayNotification(message);
             return false;
         }
     };

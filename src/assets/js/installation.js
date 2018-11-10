@@ -3,74 +3,63 @@
  *
  * @package     EasyAppointments
  * @author      A.Tselegidis <alextselegidis@gmail.com>
- * @copyright   Copyright (c) 2013 - 2016, Alex Tselegidis
+ * @copyright   Copyright (c) 2013 - 2018, Alex Tselegidis
  * @license     http://opensource.org/licenses/GPL-3.0 - GPLv3
  * @link        http://easyappointments.org
  * @since       v1.0.0
  * ---------------------------------------------------------------------------- */
 
-$(document).ready(function() {
+$(function () {
     'use strict';
 
     var MIN_PASSWORD_LENGTH = 7;
-    var AJAX_SUCCESS = 'SUCCESS';
-    var AJAX_FAILURE = 'FAILURE';
 
-    $(document).ajaxStart(function() {
+    var $alert = $('.alert');
+
+    $(document).ajaxStart(function () {
         $('#loading').removeClass('hidden');
     });
 
-    $(document).ajaxStop(function() {
+    $(document).ajaxStop(function () {
         $('#loading').addClass('hidden');
     });
 
     /**
      * Event: Install Easy!Appointments Button "Click"
      */
-    $('#install').click(function() {
+    $('#install').click(function () {
         if (!validate()) {
             return;
         }
 
-        var postUrl = GlobalVariables.baseUrl + '/index.php/installation/ajax_install';
-        var postData = {
+        var url = GlobalVariables.baseUrl + '/index.php/installation/ajax_install';
+        var data = {
             csrfToken: GlobalVariables.csrfToken,
-            admin: JSON.stringify(getAdminData()),
-            company: JSON.stringify(getCompanyData())
+            admin: getAdminData(),
+            company: getCompanyData()
         };
 
         $.ajax({
-            url: postUrl,
+            url: url,
             type: 'POST',
-            data: postData,
-            dataType: 'json',
-            success: function(response) {
+            data: data,
+            dataType: 'json'
+        })
+            .done(function (response) {
                 if (!GeneralFunctions.handleAjaxExceptions(response)) {
                     return;
                 }
 
-                $('.alert').text('Easy!Appointments has been successfully installed!');
-                $('.alert').addClass('alert-success');
-                $('.alert').show();
-                setTimeout(function() {
+                $alert
+                    .text('Easy!Appointments has been successfully installed!')
+                    .addClass('alert-success')
+                    .show();
+
+                setTimeout(function () {
                     window.location.href = GlobalVariables.baseUrl + '/index.php/backend';
                 }, 1000);
-            },
-            error: function(jqXHR, textStatus, errorThrown) {
-                // Treat the error the same way as php exceptions.
-                var exc = {
-                    exceptions: [
-                        JSON.stringify({
-                            message: 'The installation could not be completed due to an ' +
-                                'unexpected issue. Please check the browser\'s console for ' +
-                                'more information.'
-                        })
-                    ]
-                };
-                GeneralFunctions.handleAjaxExceptions(exc);
-                console.log(exc.exceptions[0].message, jqXHR, textStatus, errorThrown);
-            }
-        });
+            })
+            .fail(GeneralFunctions.ajaxFailureHandler);
     });
 
     /**
@@ -82,14 +71,14 @@ $(document).ready(function() {
      */
     function validate() {
         try {
-            $('.alert').hide();
-            $('input').css('border', '');
+            $alert.hide();
+            $('input').closest('.form-group').removeClass('has-error');
 
             // Check for empty fields.
             var missingRequired = false;
-            $('input').each(function() {
+            $('input').each(function () {
                 if ($(this).val() == '') {
-                    $(this).css('border', '2px solid red');
+                    $(this).closest('.form-group').addClass('has-error');
                     missingRequired = true;
                 }
             });
@@ -100,32 +89,34 @@ $(document).ready(function() {
 
             // Validate Passwords
             if ($('#password').val() != $('#retype-password').val()) {
-                $('#password').css('border', '2px solid red');
-                $('#retype-password').css('border', '2px solid red');
+                $('#password').closest('.form-group').addClass('has-error');
+                $('#retype-password').closest('.form-group').addClass('has-error');
                 throw 'Passwords do not match!';
             }
 
             if ($('#password').val().length < MIN_PASSWORD_LENGTH) {
-                $('#password').css('border', '2px solid red');
-                $('#retype-password').css('border', '2px solid red');
+                $('#password').closest('.form-group').addClass('has-error');
+                $('#retype-password').closest('.form-group').addClass('has-error');
                 throw 'The password must be at least ' + MIN_PASSWORD_LENGTH + ' characters long.';
             }
 
             // Validate Email
             if (!GeneralFunctions.validateEmail($('#email').val())) {
-                $('#email').css('border', '2px solid red');
+                $('#email').closest('.form-group').addClass('has-error');
                 throw 'The email address is invalid!';
             }
 
             if (!GeneralFunctions.validateEmail($('#company-email').val())) {
-                $('#company-email').css('border', '2px solid red');
+                $('#company-email').closest('.form-group').addClass('has-error');
                 throw 'The email address is invalid!';
             }
 
             return true;
-        } catch (exc) {
-            $('.alert').text(exc);
-            $('.alert').show();
+        } catch (error) {
+            $alert
+                .text(error)
+                .show();
+
             return false;
         }
     }
@@ -161,5 +152,14 @@ $(document).ready(function() {
         };
 
         return company;
+    }
+
+    // Validate the base URL setting (must not contain any trailing slash).
+    if (GlobalVariables.baseUrl.slice(-1) === '/') {
+        GeneralFunctions.displayMessageBox('Misconfiguration Detected', 'Please remove any trailing slashes from your '
+            + 'BASE_URL setting of the root config.php file and try again.');
+        $('#install')
+            .prop('disabled', true)
+            .fadeTo('0.4');
     }
 });
